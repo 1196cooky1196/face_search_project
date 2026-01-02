@@ -69,7 +69,7 @@ Embedding Head: Pooling → Flatten → Linear로 고정 길이 벡터를 만들
 Classifier Head(학습 전용): 타겟/비타겟 라벨이 있을 때 임베딩 위에 선형 분류기를 붙여 결정 경계를 학습합니다.
 추론/검색에서는 보통 Classifier 없이 Embedding만 추출한 뒤 코사인 유사도 또는 SVM으로 판별합니다.
 
-Analysis Mode
+<Analysis Mode>
 
 Target Identification: (1) 코사인 유사도(템플릿 매칭) 또는 (2) SVM(임베딩 공간 분리)로 타겟 여부를 결정합니다.
 
