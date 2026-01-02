@@ -12,65 +12,52 @@
 
 ## ⚙️ Execution Pipeline & Model Architecture
 
+전체 시스템은 **데이터 수집 → 얼굴 추출 → 특징 추출 → 분석(분류/군집)**의 4단계로 구성됩니다.  
+아래 다이어그램에는 **Feature Extraction 단계에서 사용하는 모델 구조**까지 함께 포함했습니다.
+
 ```mermaid
 graph TD
     %% =========================
     %% 1) Execution Pipeline
     %% =========================
-    A["Raw Images (famous_picture/)"] -->|"MediaPipe BlazeFace"| B["Face Cutting (resize 256x256)"]
-    B --> C["Cropped Faces (faces/)"]
+    A["Raw Images<br/>(famous_picture/)"] -->|"MediaPipe BlazeFace"| B["Face Cutting<br/>resize 256x256"]
+    B --> C["Cropped Faces<br/>(faces/)"]
     C -->|"FaceEmbeddingNet"| D["Feature Extraction"]
-    D --> E["Embeddings (.npy files)"]
+    D --> E["Embeddings<br/>(.npy files)"]
 
     E --> F{"Analysis Mode"}
-    F -->|"Binary Classification"| G["Target Identification (SVM / Cosine Sim)"]
-    F -->|"Clustering"| H["Unsupervised Grouping (PCA + HDBSCAN)"]
+    F -->|"Binary Classification"| G["Target Identification<br/>(SVM / Cosine Sim)"]
+    F -->|"Clustering"| H["Unsupervised Grouping<br/>(PCA + HDBSCAN)"]
 
     %% =========================
-    %% 2) Model Architecture
+    %% 2) Model Architecture (same block)
     %% =========================
-    D -.->|"uses"| I0
+    D -.->|"uses"| Input
 
     subgraph ARCH["Model Architecture: FaceEmbeddingNet / FrozenFeatureNet"]
       direction LR
 
       subgraph FE["Feature Extractor (Backbone CNN)"]
         direction LR
-        I0["Input Image (3x112x112)"] --> L1["Conv Block 1 (32 filters)"]
-        L1 --> L2["Conv Block 2 (64 filters)"]
-        L2 --> L3["Conv Block 3 (128 filters)"]
-        L3 --> P0["Adaptive AvgPool"]
+        Input["Input Image<br/>(3x112x112)"] --> L1["Conv Block 1<br/>32 filters"]
+        L1 --> L2["Conv Block 2<br/>64 filters"]
+        L2 --> L3["Conv Block 3<br/>128 filters"]
+        L3 --> Pool["Adaptive AvgPool"]
       end
 
       subgraph EH["Embedding Head"]
         direction LR
-        P0 --> FL["Flatten"]
-        FL --> FC["Linear (Embedding Dim)"]
-        FC --> N0["L2 Normalization"]
+        Pool --> Flat["Flatten"]
+        Flat --> Dense1["Linear Layer<br/>(Embedding Dim)"]
+        Dense1 --> Norm["L2 Normalization"]
       end
 
       subgraph CH["Classifier Head (Training Only)"]
         direction LR
-        N0 --> LOG["Linear Classifier (Logits)"]
+        Norm --> Out["Linear Classifier<br/>(Logits)"]
       end
 
-      N0 -.->|"Inference"| VEC["Feature Vector (Embedding)"]
+      Norm -.->|"Inference"| Vec["Feature Vector (Embedding)"]
     end
-
-    %% =========================
-    %% 3) Notes INSIDE the diagram (so no extra paste)
-    %% =========================
-    subgraph NOTES["Diagram Notes (구조 요약)"]
-      direction TB
-      N1["Feature Extractor: 얼굴 로컬 패턴(눈/코/입/윤곽)을 단계적으로 추출해 고수준 특징으로 압축"]
-      N2["Embedding Head: Pooling-Linear로 고정 길이 벡터 생성 + L2 Normalize로 cosine 비교 안정화"]
-      N3["Classifier Head: 라벨(타겟/비타겟) 있을 때만 logits 학습. 추론은 embedding만 뽑아도 됨"]
-      N4["Analysis: Target=Cosine 템플릿매칭 또는 SVM 분리 / Clustering=PCA로 노이즈 완화 후 HDBSCAN 군집"]
-    end
-
-    D -.-> N1
-    FC -.-> N2
-    LOG -.-> N3
-    F -.-> N4
 
 
