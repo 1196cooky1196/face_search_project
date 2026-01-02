@@ -59,7 +59,7 @@ graph TD
 
       Norm -.->|"Inference"| Vec["Feature Vector (Embedding)"]
     end
-
+'''
 # 🧠 Diagram Notes (구조 요약)
 
 Feature Extractor(Backbone CNN): 얼굴 이미지에서 로컬 패턴(눈/코/입/윤곽 등)을 단계적으로 추출해 고수준 특징으로 압축합니다.
