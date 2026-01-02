@@ -13,7 +13,7 @@
 ## ⚙️ Execution Pipeline & Model Architecture
 
 전체 시스템은 **데이터 수집 → 얼굴 추출 → 특징 추출 → 분석(분류/군집)**의 4단계로 구성됩니다.  
-또한 아래 다이어그램에는 **Feature Extraction 단계에서 사용하는 모델 구조**까지 함께 포함했습니다.
+아래 다이어그램에는 **Feature Extraction 단계에서 사용하는 모델 구조**까지 함께 포함했습니다.
 
 ```mermaid
 graph TD
@@ -37,7 +37,7 @@ graph TD
     subgraph ARCH["Model Architecture: FaceEmbeddingNet / FrozenFeatureNet"]
       direction LR
 
-      subgraph FE["Feature Extractor"]
+      subgraph FE["Feature Extractor (Backbone CNN)"]
         direction LR
         Input["Input Image<br/>(3x112x112)"] --> L1["Conv Block 1<br/>32 filters"]
         L1 --> L2["Conv Block 2<br/>64 filters"]
@@ -52,12 +52,12 @@ graph TD
         Dense1 --> Norm["L2 Normalization"]
       end
 
-      subgraph CH["Classifier Head"]
+      subgraph CH["Classifier Head (Training Only)"]
         direction LR
         Norm --> Out["Linear Classifier<br/>(Logits)"]
       end
 
-      Norm -.->|"Inference"| Vec["Feature Vector"]
+      Norm -.->|"Inference"| Vec["Feature Vector (Embedding)"]
     end
 
 🧠 Diagram Notes (구조 요약)
