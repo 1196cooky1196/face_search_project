@@ -59,3 +59,19 @@ graph TD
 
       Norm -.->|"Inference"| Vec["Feature Vector"]
     end
+
+🧠 Diagram Notes (구조 요약)
+
+Feature Extractor(Backbone CNN): 얼굴 이미지에서 로컬 패턴(눈/코/입/윤곽 등)을 단계적으로 추출해 고수준 특징으로 압축합니다.
+
+Embedding Head: Backbone 출력(feature map)을 Pooling → Flatten → Linear로 고정 길이 벡터로 만들고, 마지막에 L2 Normalization을 적용해
+벡터 크기(스케일) 영향 없이 cosine similarity 기반 비교가 안정적으로 동작하게 합니다.
+
+Classifier Head(학습용): 라벨(타겟/비타겟)이 있을 때만 사용하며, 임베딩 위에 선형 분류기를 붙여 결정 경계를 학습합니다.
+추론/검색 단계에서는 보통 Classifier 없이 Embedding만 뽑아 코사인 유사도 또는 SVM 등으로 판별합니다.
+
+Analysis Mode
+
+Target Identification: (1) 코사인 유사도(템플릿 매칭) 또는 (2) SVM(임베딩 공간에서 초평면 분리)로 타겟 여부를 결정합니다.
+
+Clustering: PCA로 차원을 줄여 노이즈를 완화한 뒤, HDBSCAN으로 클러스터 수를 자동 추정하며 유사 인물군을 묶습니다.
