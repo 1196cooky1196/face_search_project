@@ -10,42 +10,52 @@
 
 ---
 
-## ⚙️ Execution Pipeline
+## ⚙️ Execution Pipeline & Model Architecture
 
-전체 시스템은 **데이터 수집 → 얼굴 추출 → 특징 추출 → 분석(분류/군집)**의 4단계로 구성됩니다.
+전체 시스템은 **데이터 수집 → 얼굴 추출 → 특징 추출 → 분석(분류/군집)**의 4단계로 구성됩니다.  
+또한 아래 다이어그램에는 **Feature Extraction 단계에서 사용하는 모델 구조**까지 함께 포함했습니다.
 
 ```mermaid
 graph TD
-    A[📂 Raw Images<br/>(famous_picture/)] -->|MediaPipe BlazeFace| B(✂️ Face Cutting<br/>resizing 256x256)
-    B --> C[📂 Cropped Faces<br/>(faces/)]
-    C -->|FaceEmbeddingNet<br/>CNN Encoder| D(💎 Feature Extraction)
-    D --> E[📂 Embeddings<br/>.npy files]
-    
-    E --> F{Analysis Mode}
-    F -->|Binary Classification| G[🎯 Target Identification<br/>(SVM / Cosine Sim)]
-    F -->|Clustering| H[🧩 Unsupervised Grouping<br/>(PCA + HDBSCAN)]
+    %% =========================
+    %% 1) Execution Pipeline
+    %% =========================
+    A["Raw Images<br/>(famous_picture/)"] -->|"MediaPipe BlazeFace"| B["Face Cutting<br/>resize 256x256"]
+    B --> C["Cropped Faces<br/>(faces/)"]
+    C -->|"FaceEmbeddingNet"| D["Feature Extraction"]
+    D --> E["Embeddings<br/>(.npy files)"]
 
-🧠 Model Architecture
-얼굴의 특징을 추출하는 모델(FaceEmbeddingNet / FrozenFeatureNet)의 구조입니다. Backbone CNN을 통해 이미지 특징을 압축하고, Embedding Layer를 통해 고차원 벡터로 변환합니다.
+    E --> F{"Analysis Mode"}
+    F -->|"Binary Classification"| G["Target Identification<br/>(SVM / Cosine Sim)"]
+    F -->|"Clustering"| H["Unsupervised Grouping<br/>(PCA + HDBSCAN)"]
 
-graph LR
-    subgraph Feature Extractor
-    Input[Input Image<br/>(3x112x112)] --> L1[Conv Block 1<br/>32 filters]
-    L1 --> L2[Conv Block 2<br/>64 filters]
-    L2 --> L3[Conv Block 3<br/>128 filters]
-    L3 --> Pool[Adaptive AvgPool]
+    %% =========================
+    %% 2) Model Architecture (same block)
+    %% =========================
+    D -.->|"uses"| Input
+
+    subgraph ARCH["Model Architecture: FaceEmbeddingNet / FrozenFeatureNet"]
+      direction LR
+
+      subgraph FE["Feature Extractor"]
+        direction LR
+        Input["Input Image<br/>(3x112x112)"] --> L1["Conv Block 1<br/>32 filters"]
+        L1 --> L2["Conv Block 2<br/>64 filters"]
+        L2 --> L3["Conv Block 3<br/>128 filters"]
+        L3 --> Pool["Adaptive AvgPool"]
+      end
+
+      subgraph EH["Embedding Head"]
+        direction LR
+        Pool --> Flat["Flatten"]
+        Flat --> Dense1["Linear Layer<br/>(Embedding Dim)"]
+        Dense1 --> Norm["L2 Normalization"]
+      end
+
+      subgraph CH["Classifier Head"]
+        direction LR
+        Norm --> Out["Linear Classifier<br/>(Logits)"]
+      end
+
+      Norm -.->|"Inference"| Vec["Feature Vector"]
     end
-
-    subgraph Embedding Head
-    Pool --> Flat[Flatten]
-    Flat --> Dense1[Linear Layer<br/>(Embedding Dim)]
-    Dense1 --> Norm[L2 Normalization]
-    end
-
-    subgraph Classifier Head
-    Norm --> Out[Linear Classifier<br/>(Logits)]
-    end
-
-    Feature Extractor --> Embedding Head
-    Embedding Head -.->|Inference| Output(Feature Vector)
-    Embedding Head -->|Training| Classifier Head
